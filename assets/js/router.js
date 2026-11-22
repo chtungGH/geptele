@@ -2,17 +2,17 @@ import { applyTheme, initThemeObserver } from "./themes.js";
 import { ensureAccessReady, syncAuthHeaderButton } from "./accessGate.js";
 
 export const MODULES = [
-    { id: "home", name: "首頁", path: "/modules/home/script.js", showInNav: true },
-    { id: "lobby", name: "學習大廳", path: "/modules/lobby/script.js", showInNav: true },
-    { id: "shop", name: "商城", path: "/modules/shop/script.js", showInNav: false },          // 暫時隱藏商城分頁
-    { id: "card", name: "卡牌", path: "/modules/card/script.js", showInNav: true },           // 👈 第四个按鈕：卡牌圖鑑
-    { id: "profile", name: "個人資料", path: "/modules/profile/main.js", showInNav: true },    // 第五个按鈕：個人資料
+    { id: "home", name: "首頁", path: "../../modules/home/script.js", showInNav: true },
+    { id: "lobby", name: "學習大廳", path: "../../modules/lobby/script.js", showInNav: true },
+    { id: "shop", name: "商城", path: "../../modules/shop/script.js", showInNav: false },          // 暫時隱藏商城分頁
+    { id: "card", name: "卡牌", path: "../../modules/card/script.js", showInNav: true },           // 👈 第四个按鈕：卡牌圖鑑
+    { id: "profile", name: "個人資料", path: "../../modules/profile/main.js", showInNav: true },    // 第五个按鈕：個人資料
     
     // 子單元（由大廳卡片點擊進入）
-    { id: "vocabulary", name: "單字選擇", path: "/modules/vocabulary/script.js", showInNav: false },
-    { id: "sentences", name: "情境句子", path: "/modules/sentences/script.js", showInNav: false },
-    { id: "cloze", name: "克漏字填空", path: "/modules/cloze/script.js", showInNav: false },
-    { id: "reading", name: "閱讀測驗", path: "/modules/reading/script.js", showInNav: false }
+    { id: "vocabulary", name: "單字選擇", path: "../../modules/vocabulary/script.js", showInNav: false },
+    { id: "sentences", name: "情境句子", path: "../../modules/sentences/script.js", showInNav: false },
+    { id: "cloze", name: "克漏字填空", path: "../../modules/cloze/script.js", showInNav: false },
+    { id: "reading", name: "閱讀測驗", path: "../../modules/reading/script.js", showInNav: false }
 ];
 
 let currentModule = null;
