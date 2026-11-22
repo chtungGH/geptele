@@ -1,7 +1,6 @@
 // 直接在模組內引入 Firebase v9 相容版 SDK
 import "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js";
 import "https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js";
-import { showQuizResultModal } from "../../assets/js/quizResultModal.js";
 import { getAccessLimits, openUpgradeGate } from "../../assets/js/accessGate.js";
 
 export default {
@@ -28,10 +27,10 @@ export default {
 
                         <!-- 難度層級篩選下拉選單 -->
                         <select id="reading-difficulty-filter" class="px-3 py-1.5 border-2 border-slate-700 rounded-xl bg-slate-900 font-bold text-sky-400 text-xs focus:outline-none focus:border-sky-500 shadow-sm">
-                            <option value="all">All Levels (全部難度)</option>
-                            <option value="elem1">elem1 (基礎)</option>
-                            <option value="elem2">elem2 (中階)</option>
-                            <option value="elem3">elem3 (進階)</option>
+                            <option value="all">全部難度</option>
+                            <option value="elem1">elem1（基礎）</option>
+                            <option value="elem2">elem2（中階）</option>
+                            <option value="elem3">elem3（進階）</option>
                         </select>
 
                         <!-- 文章標題清單選單 -->
@@ -67,6 +66,7 @@ export default {
         const db = firebase.database();
 
         let allClozeQuizzes = {};
+        let filteredArticleKeys = [];
         let currentQuizKey = null;
         let submittedQuizKeys = new Set();
 
@@ -138,18 +138,20 @@ export default {
             });
 
             if (filteredKeys.length === 0) {
+                filteredArticleKeys = [];
                 articleSelector.innerHTML = `<option value="">此難度無文章</option>`;
                 area.innerHTML = `<p class="text-slate-400 text-center py-6">⚠️ 此難度層級目前沒有文章。</p>`;
                 currentQuizKey = null;
                 return;
             }
 
+            filteredArticleKeys = filteredKeys;
             filteredKeys.forEach((key, index) => {
                 const quiz = allClozeQuizzes[key];
                 const option = document.createElement('option');
                 option.value = key;
                 const diffTag = quiz.difficulty ? `[${quiz.difficulty}] ` : '';
-                option.textContent = diffTag + (quiz.Title_E || quiz.Title_C || `Article ${index + 1}`);
+                option.textContent = diffTag + (quiz.Title_E || quiz.Title_C || `第 ${index + 1} 篇`);
                 articleSelector.appendChild(option);
             });
 
@@ -161,8 +163,30 @@ export default {
         function switchArticle(quizKey) {
             if (allClozeQuizzes[quizKey]) {
                 currentQuizKey = quizKey;
+                articleSelector.value = quizKey;
                 renderClozeQuizContent(allClozeQuizzes[currentQuizKey], modeCheckbox.checked);
             }
+        }
+
+        function getNextArticleKey() {
+            if (filteredArticleKeys.length <= 1) return null;
+            const currentIdx = filteredArticleKeys.indexOf(currentQuizKey);
+            // 優先找尚未作答過的下一篇，若都做過則依序切到下一篇
+            for (let offset = 1; offset < filteredArticleKeys.length; offset++) {
+                const candidateKey = filteredArticleKeys[(currentIdx + offset) % filteredArticleKeys.length];
+                const ddDone = submittedQuizKeys.has(`${candidateKey}_dd`);
+                const mcDone = submittedQuizKeys.has(`${candidateKey}_mc`);
+                if (!ddDone && !mcDone) return candidateKey;
+            }
+            return filteredArticleKeys[(currentIdx + 1) % filteredArticleKeys.length];
+        }
+
+        function getDifficultyLabel(diff) {
+            const d = String(diff || "elem1").toLowerCase();
+            if (d === "elem1") return "elem1（基礎）";
+            if (d === "elem2") return "elem2（中階）";
+            if (d === "elem3") return "elem3（進階）";
+            return diff || "基礎";
         }
 
         function renderClozeQuizContent(quiz, isDropdownMode) {
@@ -172,22 +196,22 @@ export default {
             if (isDropdownMode) {
                 if (quiz.questions && Array.isArray(quiz.questions)) {
                     quiz.questions.forEach((q) => {
-                        let optionsHtml = `<select id="ans_${q.id}" class="mx-1 px-3 py-1.5 border-2 border-slate-700 rounded-lg bg-slate-900 font-bold text-sky-400 focus:outline-none focus:border-sky-500 shadow-sm">`;
-                        optionsHtml += `<option value="">(${q.id}) Please select</option>`;
+                        let optionsHtml = `<span class="inline-flex items-center flex-wrap gap-1 align-middle"><select id="ans_${q.id}" class="mx-1 px-3 py-1.5 border-2 border-slate-700 rounded-lg bg-slate-900 font-bold text-sky-400 focus:outline-none focus:border-sky-500 shadow-sm">`;
+                        optionsHtml += `<option value="">(${q.id}) 請選擇答案</option>`;
                         if (q.options && Array.isArray(q.options)) {
                             let shuffledOpts = shuffleArray(q.options);
                             shuffledOpts.forEach(opt => {
                                 optionsHtml += `<option value="${opt}">${opt}</option>`;
                             });
                         }
-                        optionsHtml += `</select>`;
+                        optionsHtml += `</select><span id="ans_badge_${q.id}" class="hidden text-xs font-black px-2 py-0.5 rounded-md"></span></span>`;
                         formattedPassage = formattedPassage.replace(`{${q.blank_key}}`, optionsHtml);
                     });
                 }
             } else {
                 if (quiz.questions && Array.isArray(quiz.questions)) {
                     quiz.questions.forEach((q) => {
-                        let blankTag = `(${q.id}) ________`;
+                        let blankTag = `<span class="font-black text-sky-400">(${q.id}) ________</span>`;
                         formattedPassage = formattedPassage.replace(`{${q.blank_key}}`, blankTag);
                     });
 
@@ -198,8 +222,8 @@ export default {
                             shuffledOpts.forEach((opt, optIdx) => {
                                 let optLetter = String.fromCharCode(65 + optIdx);
                                 optionsHtml += `
-                                    <label class="flex items-center p-3 rounded-xl border-2 border-slate-700 hover:border-sky-400 cursor-pointer transition font-bold text-sm bg-slate-900 text-slate-200">
-                                        <input type="radio" name="question_${q.id}" value="${opt}" class="w-4 h-4 text-sky-400">
+                                    <label class="reading-radio-opt flex items-center p-3 rounded-xl border-2 border-slate-700 hover:border-sky-400 cursor-pointer transition font-bold text-sm bg-slate-900 text-slate-200" data-qid="${q.id}" data-val="${opt}">
+                                        <input type="radio" name="question_${q.id}" value="${opt}" class="w-4 h-4 text-sky-400 shrink-0">
                                         <span class="ml-3">(${optLetter}) ${opt}</span>
                                     </label>
                                 `;
@@ -207,9 +231,9 @@ export default {
                         }
 
                         interactiveQuestionsHtml += `
-                            <div class="space-y-3 p-5 bg-slate-900 rounded-xl border border-slate-700">
+                            <div class="space-y-3 p-5 bg-slate-900 rounded-xl border border-slate-700" data-question-box="${q.id}">
                                 <div class="font-bold text-slate-200 text-base">
-                                    (${q.id}) Please select the most appropriate answer:
+                                    第 ${q.id} 題：請選出最適當的答案
                                 </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     ${optionsHtml}
@@ -226,16 +250,19 @@ export default {
                 return `<p class="mb-3" style="text-indent: 2em; line-height: 2.2;">${p.trim()}</p>`;
             }).join('');
 
+            const nextKeyPreview = getNextArticleKey();
+            const hasNextArticle = Boolean(nextKeyPreview);
+
             area.innerHTML = `
                 <div class="space-y-6">
                     <div>
-                        <h3 class="text-2xl font-black text-sky-400">${quiz.Title_E || 'Reading Cloze Quiz'}</h3>
-                        <p class="text-xs text-slate-400 mt-1">中文標題：${quiz.Title_C || ''} | Difficulty: ${quiz.difficulty || 'Elementary'}</p>
+                        <h3 class="text-2xl font-black text-sky-400">${quiz.Title_E || '閱讀克漏字測驗'}</h3>
+                        <p class="text-xs text-slate-400 mt-1">中文標題：${quiz.Title_C || '未提供'} ｜ 難度：${getDifficultyLabel(quiz.difficulty)}</p>
                     </div>
 
                     <div class="space-y-2">
                         <div class="flex items-center justify-between">
-                            <h4 class="font-bold text-slate-300">📖 Reading Passage</h4>
+                            <h4 class="font-bold text-slate-300">📖 閱讀文章</h4>
                         </div>
                         <div class="text-slate-200 leading-relaxed text-lg bg-slate-900 p-6 rounded-xl border-2 border-slate-700 shadow-inner">
                             ${processedPassageHtml}
@@ -244,26 +271,56 @@ export default {
 
                     ${!isDropdownMode ? `
                         <div class="space-y-4 pt-2">
-                            <h4 class="font-bold text-slate-300">✍️ Questions</h4>
+                            <h4 class="font-bold text-slate-300">✍️ 題目作答</h4>
                             ${interactiveQuestionsHtml}
                         </div>
                     ` : ''}
 
-                    <div class="flex flex-col sm:flex-row gap-4 items-center justify-between border-t border-slate-700 pt-4">
+                    <!-- 交卷按鈕列（交卷後隱藏，改由下方成績結算卡取代） -->
+                    <div id="reading-submit-bar" class="flex justify-end border-t border-slate-700 pt-4">
                         <button id="submit-reading-btn" class="w-full sm:w-auto px-8 py-3.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-black rounded-xl shadow transition cursor-pointer">
-                            Submit Quiz & View Explanations
+                            ✅ 送出交卷並看解析
                         </button>
-                        <div id="reading-score-display" class="text-xl font-bold text-sky-400"></div>
                     </div>
 
-                    <div id="reading-explanation-container" class="hidden space-y-6 pt-4 border-t border-slate-700">
+                    <!-- 交卷後的頁內成績結算卡（取代彈窗，不打斷閱讀解析） -->
+                    <div id="reading-score-card" class="hidden p-5 rounded-2xl border-2 border-sky-500/50 bg-slate-900/95 shadow-lg space-y-2">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div>
+                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-black bg-sky-500/20 text-sky-300 border border-sky-500/40">本篇測驗結算</span>
+                                <div id="reading-score-display" class="text-xl font-black text-sky-300 mt-1"></div>
+                            </div>
+                            <span id="reading-sync-badge" class="text-xs font-bold text-emerald-300 bg-emerald-950/60 border border-emerald-700/60 px-3 py-1 rounded-full self-start sm:self-center">
+                                ✓ 成績已同步
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-400">上方文章空格已用綠／紅框標示對錯，請檢視下方逐題解析與中文翻譯。</p>
+                    </div>
+
+                    <!-- 逐題解析、中文翻譯與收尾操作列 -->
+                    <div id="reading-explanation-container" class="hidden space-y-6 pt-2">
                         <div>
-                            <h4 class="text-lg font-bold text-slate-200 mb-3">📝 Answer Explanations</h4>
+                            <h4 class="text-lg font-bold text-slate-200 mb-3">📝 逐題解析</h4>
                             <div id="reading-explanation-list" class="space-y-3"></div>
                         </div>
                         <div class="border-t border-slate-700 pt-4">
-                            <h4 class="text-lg font-bold text-slate-200 mb-2">🇹🇼 Chinese Translation</h4>
-                            <div class="text-slate-300 bg-slate-900 p-5 rounded-xl whitespace-pre-line border border-slate-700 leading-relaxed">${quiz.CHTessay || 'No translation available'}</div>
+                            <h4 class="text-lg font-bold text-slate-200 mb-2">🇹🇼 中文翻譯</h4>
+                            <div class="text-slate-300 bg-slate-900 p-5 rounded-xl whitespace-pre-line border border-slate-700 leading-relaxed">${quiz.CHTessay || '暫無中文翻譯'}</div>
+                        </div>
+
+                        <!-- 看完解析後的下一步操作列 -->
+                        <div class="border-t border-slate-700 pt-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
+                            <button type="button" id="reading-lobby-btn" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-sm transition cursor-pointer">
+                                🏠 返回學習大廳
+                            </button>
+                            <button type="button" id="reading-retry-btn" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-amber-300 font-bold text-sm transition cursor-pointer">
+                                🔄 重做本篇
+                            </button>
+                            ${hasNextArticle ? `
+                                <button type="button" id="reading-next-article-btn" class="px-6 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-sm shadow transition cursor-pointer">
+                                    ➡️ 繼續挑戰下一篇
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -272,11 +329,56 @@ export default {
             container.querySelector("#submit-reading-btn").onclick = () => {
                 submitReadingQuiz(quiz, isDropdownMode);
             };
+
+            const lobbyBtn = container.querySelector("#reading-lobby-btn");
+            if (lobbyBtn) {
+                lobbyBtn.onclick = () => {
+                    window.location.hash = "lobby";
+                };
+            }
+
+            const retryBtn = container.querySelector("#reading-retry-btn");
+            if (retryBtn) {
+                retryBtn.onclick = () => {
+                    renderClozeQuizContent(quiz, modeCheckbox.checked);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                };
+            }
+
+            const nextBtn = container.querySelector("#reading-next-article-btn");
+            if (nextBtn) {
+                nextBtn.onclick = () => {
+                    const nextKey = getNextArticleKey();
+                    if (nextKey) {
+                        switchArticle(nextKey);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
+                };
+            }
         }
 
         async function submitReadingQuiz(quiz, isDropdownMode) {
             const questions = quiz?.questions;
             if (!questions || !Array.isArray(questions)) return;
+
+            // 先檢查是否有漏填題目，避免誤按交卷
+            let unansweredCount = 0;
+            questions.forEach((q) => {
+                if (isDropdownMode) {
+                    const selectElem = container.querySelector(`#ans_${q.id}`);
+                    if (!selectElem || !selectElem.value) unansweredCount++;
+                } else {
+                    const selectedOption = container.querySelector(`input[name="question_${q.id}"]:checked`);
+                    if (!selectedOption) unansweredCount++;
+                }
+            });
+            if (unansweredCount > 0) {
+                const proceed = window.confirm(`還有 ${unansweredCount} 題尚未作答，確定要直接交卷看解析嗎？`);
+                if (!proceed) return;
+            }
+
+            // 隱藏交卷按鈕，避免已看解析卻還留著送出按鈕
+            container.querySelector("#reading-submit-bar")?.classList.add("hidden");
 
             let quizScore = 0;
             let correctCount = 0;
@@ -285,31 +387,79 @@ export default {
             let explanationHtml = '';
 
             questions.forEach((q) => {
+                const correctAns = String(q.answer || "").trim();
                 let userSelect = "";
+
                 if (isDropdownMode) {
                     const selectElem = container.querySelector(`#ans_${q.id}`);
+                    const badgeElem = container.querySelector(`#ans_badge_${q.id}`);
                     userSelect = selectElem ? selectElem.value : "";
+                    const isCorrect = (userSelect.trim().toLowerCase() === correctAns.toLowerCase());
+
+                    if (selectElem) {
+                        selectElem.disabled = true;
+                        selectElem.classList.remove("border-slate-700", "text-sky-400");
+                        if (isCorrect) {
+                            selectElem.classList.add("border-emerald-500", "bg-emerald-950/60", "text-emerald-300");
+                        } else {
+                            selectElem.classList.add("border-rose-500", "bg-rose-950/60", "text-rose-300");
+                        }
+                    }
+                    if (badgeElem) {
+                        badgeElem.classList.remove("hidden");
+                        if (isCorrect) {
+                            badgeElem.textContent = "✓";
+                            badgeElem.className = "text-xs font-black px-1.5 py-0.5 rounded-md bg-emerald-950 border border-emerald-600 text-emerald-300";
+                        } else {
+                            badgeElem.textContent = `正解：${correctAns}`;
+                            badgeElem.className = "text-xs font-black px-2 py-0.5 rounded-md bg-emerald-950 border border-emerald-600 text-emerald-300";
+                        }
+                    }
                 } else {
+                    const radios = container.querySelectorAll(`input[name="question_${q.id}"]`);
                     const selectedOption = container.querySelector(`input[name="question_${q.id}"]:checked`);
                     userSelect = selectedOption ? selectedOption.value : "";
+                    const isCorrect = (userSelect.trim().toLowerCase() === correctAns.toLowerCase());
+
+                    radios.forEach((r) => {
+                        r.disabled = true;
+                        const label = r.closest(".reading-radio-opt");
+                        if (!label) return;
+                        const optVal = String(r.value || "").trim().toLowerCase();
+                        label.classList.remove("border-slate-700", "hover:border-sky-400");
+                        if (optVal === correctAns.toLowerCase()) {
+                            label.classList.add("border-emerald-500", "bg-emerald-950/45", "text-emerald-200");
+                        } else if (r.checked && !isCorrect) {
+                            label.classList.add("border-rose-500", "bg-rose-950/45", "text-rose-200");
+                        } else {
+                            label.classList.add("border-slate-800", "opacity-70");
+                        }
+                    });
                 }
 
-                const isCorrect = (userSelect.toLowerCase() === String(q.answer || "").toLowerCase());
+                const isCorrect = (userSelect.trim().toLowerCase() === correctAns.toLowerCase());
                 if (isCorrect) {
                     quizScore += pointsPerQuestion;
                     correctCount++;
                 }
 
                 explanationHtml += `
-                    <div class="p-4 rounded-xl border ${isCorrect ? 'bg-emerald-950 border-emerald-700 text-emerald-200' : 'bg-rose-950 border-rose-700 text-rose-200'}">
-                        <div class="font-bold mb-1">
-                            Question ${q.id}: Correct Answer is 「<span class="text-sky-400">${q.answer}</span>」
-                            ${isCorrect ? '✅ <span class="text-emerald-400 font-bold">Correct</span>' : `❌ <span class="text-rose-400 font-bold">Your answer: ${userSelect || 'Not answered'}</span>`}
+                    <div class="p-4 rounded-xl border ${isCorrect ? 'bg-emerald-950/60 border-emerald-700 text-emerald-200' : 'bg-rose-950/60 border-rose-700 text-rose-200'}">
+                        <div class="font-bold mb-1 flex items-center flex-wrap gap-2">
+                            <span>第 ${q.id} 題：正確答案為「<span class="text-sky-300 font-black">${correctAns}</span>」</span>
+                            ${isCorrect
+                                ? '<span class="text-emerald-300 font-black">✅ 答對</span>'
+                                : `<span class="text-rose-300 font-black">❌ 你的答案：${userSelect || '未作答'}</span>`}
                         </div>
-                        <div class="text-slate-300 text-sm leading-relaxed">${q.explanation || 'No detailed explanation'}</div>
+                        <div class="text-slate-300 text-sm leading-relaxed">${q.explanation || '暫無詳細解析'}</div>
                     </div>
                 `;
             });
+
+            // 全部答對時確保顯示 100 分（避免四捨五入誤差）
+            if (correctCount === totalQuestions && totalQuestions > 0) {
+                quizScore = 100;
+            }
 
             const level = quiz.difficulty || 'elem1';
             const fallbackPoints = window.UserStore
@@ -356,26 +506,26 @@ export default {
             }
 
             const pointsLabel = alreadySubmitted
-                ? "本篇已計分，+0 點"
+                ? "本篇已計分，重複練習 +0 點"
                 : `獲得 +${earnedPoints} 點`;
-            container.querySelector('#reading-score-display').innerText =
-                `Score: ${quizScore} pts（答對 ${correctCount}/${totalQuestions} 題，${pointsLabel}）`;
+            const scoreCard = container.querySelector('#reading-score-card');
+            const scoreDisplay = container.querySelector('#reading-score-display');
+            const syncBadge = container.querySelector('#reading-sync-badge');
+
+            if (scoreDisplay) {
+                scoreDisplay.innerHTML = `${quizScore} 分 <span class="text-sm font-bold text-slate-300 ml-1">（答對 ${correctCount} / ${totalQuestions} 題｜<span class="text-emerald-300">${pointsLabel}</span>）</span>`;
+            }
+            if (syncBadge) {
+                syncBadge.textContent = alreadySubmitted ? "✓ 重複練習模式" : "✓ 成績與點數已同步";
+            }
+            if (scoreCard) {
+                scoreCard.classList.remove('hidden');
+            }
+
             container.querySelector('#reading-explanation-list').innerHTML = explanationHtml;
             container.querySelector('#reading-explanation-container').classList.remove('hidden');
 
-            await showQuizResultModal({
-                unitName: `閱讀測驗｜${quiz.Title_C || quiz.Title_E || "短文測驗"}`,
-                mode: "reading",
-                score: correctCount,
-                wrongCount: totalQuestions - correctCount,
-                totalQuestions,
-                scorePercent: quizScore,
-                earnedPoints,
-                alreadySubmitted,
-                primaryText: "查看解析與翻譯"
-            });
-
-            container.querySelector('#reading-explanation-container')?.scrollIntoView({ behavior: 'smooth' });
+            scoreCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     },
 
