@@ -1,0 +1,470 @@
+/* assets/css/theme.css
+ * 全站主題／皮膚樣式系統：透過 html[data-theme="..."] 切換 CSS 變數（顏色、邊框、強調色、字型）
+ */
+
+:root,
+html[data-theme="default"] {
+    --bg-page: #0f172a;
+    --bg-page-accent: radial-gradient(circle at top, rgba(56, 189, 248, 0.08), transparent 55%);
+    --bg-header: #0f172a;
+    --bg-card: #1e293b;
+    --bg-elevated: #0f172a;
+    --border-color: #334155;
+    --border-subtle: #1e293b;
+
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+
+    --accent-primary: #38bdf8;
+    --accent-hover: #7dd3fc;
+    --accent-soft: rgba(56, 189, 248, 0.16);
+    --accent-contrast: #082f49;
+
+    --font-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system, sans-serif;
+    --font-heading: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+html[data-theme="adventure"] {
+    --bg-page: #071a17;
+    --bg-page-accent: radial-gradient(circle at top, rgba(245, 158, 11, 0.12), transparent 55%);
+    --bg-header: #051311;
+    --bg-card: #0f2d27;
+    --bg-elevated: #09201c;
+    --border-color: #1f4e45;
+    --border-subtle: #13362f;
+
+    --text-primary: #f0fdf4;
+    --text-secondary: #d1fae5;
+    --text-muted: #99c4b8;
+
+    --accent-primary: #f59e0b;
+    --accent-hover: #fbbf24;
+    --accent-soft: rgba(245, 158, 11, 0.18);
+    --accent-contrast: #1c1917;
+
+    --font-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system, sans-serif;
+    --font-heading: "Noto Serif TC", "PMingLiU", Georgia, "Times New Roman", serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+html[data-theme="cyber"] {
+    --bg-page: #0b0718;
+    --bg-page-accent: radial-gradient(circle at top, rgba(192, 132, 252, 0.16), transparent 55%);
+    --bg-header: #080412;
+    --bg-card: #17112e;
+    --bg-elevated: #100a22;
+    --border-color: #3b2a6e;
+    --border-subtle: #251a4a;
+
+    --text-primary: #f5f3ff;
+    --text-secondary: #ddd6fe;
+    --text-muted: #a799d1;
+
+    --accent-primary: #c084fc;
+    --accent-hover: #e879f9;
+    --accent-soft: rgba(192, 132, 252, 0.2);
+    --accent-contrast: #1e1033;
+
+    --font-sans: "Noto Sans TC", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-heading: "JetBrains Mono", "Cascadia Code", Consolas, "Noto Sans TC", monospace;
+    --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
+}
+
+/* 全站基底外觀套用 */
+body {
+    background-color: var(--bg-page) !important;
+    background-image: var(--bg-page-accent);
+    background-attachment: fixed;
+    color: var(--text-primary) !important;
+    font-family: var(--font-sans);
+    transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+h1, h2, h3, h4, .theme-heading {
+    font-family: var(--font-heading);
+}
+
+/* 頂部標題列與底部導覽列 */
+header {
+    background-color: var(--bg-header) !important;
+    border-color: var(--border-subtle) !important;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+header > div:first-child {
+    color: var(--accent-primary);
+    font-family: var(--font-heading);
+}
+
+#nav-menu {
+    background-color: var(--bg-header) !important;
+    border-color: var(--border-subtle) !important;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+#nav-menu .nav-btn.text-sky-400 {
+    color: var(--accent-primary) !important;
+}
+
+#nav-menu .nav-btn:hover {
+    color: var(--accent-hover) !important;
+}
+
+/* 各模組通用卡片容器（相容既有 inline style） */
+.theme-card,
+.lobby-card {
+    background: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+    transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+}
+
+.lobby-card:hover {
+    border-color: var(--accent-primary) !important;
+}
+
+/* 非預設主題下微調標題強調色，維持高對比不破版 */
+html[data-theme="adventure"] h1,
+html[data-theme="cyber"] h1 {
+    color: var(--accent-primary) !important;
+}
+
+/* 輔助工具類別（供主題選擇器或新元件使用） */
+.theme-accent-text {
+    color: var(--accent-primary) !important;
+}
+
+.theme-accent-bg {
+    background-color: var(--accent-primary) !important;
+    color: var(--accent-contrast) !important;
+}
+
+.theme-accent-soft {
+    background-color: var(--accent-soft) !important;
+    border-color: var(--accent-primary) !important;
+    color: var(--accent-primary) !important;
+}
+
+/* =========================================================
+ * 共用測驗結算對話框（自動響應 html[data-theme] 配色與字型）
+ * ========================================================= */
+@keyframes quizModalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes quizModalPopIn {
+    0% { opacity: 0; transform: translateY(16px) scale(0.94); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.quiz-result-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(2, 6, 23, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: quizModalFadeIn 0.2s ease-out;
+}
+
+.quiz-result-dialog {
+    width: 100%;
+    max-width: 28rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--accent-soft);
+    font-family: var(--font-sans);
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    animation: quizModalPopIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.quiz-result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.quiz-result-unit-tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+}
+
+.quiz-result-rank-badge {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    color: var(--accent-primary);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-primary);
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+}
+
+.quiz-result-hero {
+    text-align: center;
+    padding: 0.25rem 0;
+}
+
+.quiz-result-icon {
+    font-size: 3rem;
+    line-height: 1.1;
+    margin-bottom: 0.45rem;
+}
+
+.quiz-result-title {
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: var(--accent-primary);
+    margin: 0;
+    line-height: 1.35;
+}
+
+.quiz-result-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.35rem;
+    line-height: 1.5;
+}
+
+.quiz-result-progress-wrap {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.9rem;
+    padding: 0.75rem 0.9rem;
+}
+
+.quiz-result-progress-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.45rem;
+}
+
+.quiz-result-progress-meta strong {
+    color: var(--accent-primary);
+    font-size: 0.95rem;
+}
+
+.quiz-result-progress-track {
+    width: 100%;
+    height: 0.55rem;
+    border-radius: 9999px;
+    background: rgba(148, 163, 184, 0.18);
+    overflow: hidden;
+}
+
+.quiz-result-progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-hover));
+    transition: width 0.5s ease;
+}
+
+.quiz-result-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+}
+
+.quiz-result-stat {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 0.9rem;
+    padding: 0.7rem 0.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.quiz-result-stat-accent {
+    background: var(--accent-soft);
+    border-color: var(--accent-primary);
+}
+
+.quiz-result-stat-label {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.quiz-result-stat-val {
+    font-size: 1rem;
+    font-weight: 900;
+    color: var(--text-primary);
+}
+
+.quiz-result-stat-accent .quiz-result-stat-val {
+    color: var(--accent-primary);
+}
+
+.quiz-result-mono {
+    font-family: var(--font-mono);
+}
+
+.quiz-result-footer-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    padding-top: 0.1rem;
+}
+
+.quiz-result-footer-meta strong {
+    color: var(--text-secondary);
+}
+
+.quiz-result-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+    gap: 0.65rem;
+    padding-top: 0.25rem;
+}
+
+.quiz-result-btn-primary,
+.quiz-result-btn-secondary {
+    padding: 0.72rem 1rem;
+    border-radius: 0.85rem;
+    font-size: 0.875rem;
+    font-weight: 900;
+    font-family: var(--font-heading);
+    cursor: pointer;
+    transition: transform 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
+}
+
+.quiz-result-btn-primary {
+    background: var(--accent-primary);
+    color: var(--accent-contrast);
+    border: 1px solid var(--accent-primary);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+.quiz-result-btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+.quiz-result-btn-secondary {
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.quiz-result-btn-secondary:hover {
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+}
+
+/* =========================================================
+ * 系統總管制登入閘道（自動套用主題配色與字型）
+ * ========================================================= */
+.access-gate-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 95;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(2, 6, 23, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    overflow-y: auto;
+    animation: quizModalFadeIn 0.2s ease-out;
+}
+
+.access-gate-card {
+    width: 100%;
+    max-width: 32rem;
+    margin: auto;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 28px 65px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--accent-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    animation: quizModalPopIn 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.access-gate-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    color: var(--accent-primary);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-primary);
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+}
+
+.access-gate-title {
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.access-gate-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.access-gate-section {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    padding: 1rem;
+}
+
+.access-gate-line-box {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    border-radius: 1rem;
+    padding: 0.9rem 1rem;
+}
+
+.access-gate-btn-primary {
+    background: var(--accent-primary);
+    color: var(--accent-contrast);
+    font-family: var(--font-heading);
+}
+
+.access-gate-btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.access-gate-btn-primary:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}

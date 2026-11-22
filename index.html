@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>玩轉數位學習小站</title>
+    <script>
+        (() => {
+            try {
+                const savedTheme = localStorage.getItem("boshen_active_theme") || "default";
+                document.documentElement.dataset.theme = savedTheme;
+            } catch {}
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./assets/css/theme.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- 頂部標題列 -->
+    <header class="bg-slate-900 border-b border-slate-800 p-4 text-center text-sky-400 font-bold sticky top-0 z-40">
+        <div data-theme-copy="app.title">玩轉數位學習小站－GEPT英檢初級單字練習</div>
+        <div class="mt-1 flex flex-wrap justify-center items-center gap-3 text-xs font-normal text-slate-300">
+            <span>ID：<strong id="top-bind-id" class="text-amber-300" data-bind="user.id">50TEST</strong></span>
+            <span>點數：<strong id="top-bind-points" class="text-emerald-300" data-bind="user.points">0</strong></span>
+            <span>卡牌：<strong id="top-bind-cards" class="text-pink-300" data-bind="user.uniqueCards">0</strong> 種（<span id="top-bind-card-copies" data-bind="user.totalCards">0</span> 張）</span>
+            <span>練習：<strong id="top-bind-practice" class="text-sky-300" data-bind="user.totalPractice">0</strong> 次</span>
+            <button id="top-auth-action-btn" type="button" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-slate-700 bg-slate-800 hover:bg-slate-700 text-amber-300 transition cursor-pointer">登入 / 試用</button>
+        </div>
+    </header>
+
+    <!-- 中間模組動態掛載區 -->
+    <main id="app-view" class="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 pb-24">
+        <div class="text-center text-slate-400 mt-20">載入中...</div>
+    </main>
+
+    <!-- 底部手機版導覽列 -->
+    <nav id="nav-menu" class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 p-2 z-50 flex justify-around items-center shadow-2xl">
+    </nav>
+
+    <script src="./js/userStore.js"></script>
+    <script>
+        (() => {
+            function applyTopBarValues(payload = {}) {
+                const idEl = document.getElementById("top-bind-id");
+                const ptsEl = document.getElementById("top-bind-points");
+                const uniqueCardsEl = document.getElementById("top-bind-cards");
+                const totalCardsEl = document.getElementById("top-bind-card-copies");
+                const practiceEl = document.getElementById("top-bind-practice");
+
+                if (payload.id !== undefined && idEl) idEl.textContent = String(payload.id || "50TEST");
+                if (payload.points !== undefined && ptsEl) ptsEl.textContent = String(Number(payload.points ?? 0));
+                if (payload.uniqueCards !== undefined && uniqueCardsEl) uniqueCardsEl.textContent = String(Number(payload.uniqueCards ?? 0));
+                if (payload.totalCards !== undefined && totalCardsEl) totalCardsEl.textContent = String(Number(payload.totalCards ?? 0));
+                if (payload.practiceCount !== undefined && practiceEl) practiceEl.textContent = String(Number(payload.practiceCount ?? 0));
+            }
+
+            function syncFromUserStore() {
+                if (!window.UserStore) return;
+                const snap = UserStore.getState();
+                const p = snap.profile || {};
+                const cardsObj = p.cards || {};
+                const uniqueCards = Object.values(cardsObj).filter((n) => Number(n || 0) > 0).length;
+                const totalCards = Object.values(cardsObj).reduce((sum, n) => sum + Number(n || 0), 0);
+                const practiceCount = Number(p.practiceStats?.totalCount || 0);
+
+                applyTopBarValues({
+                    id: snap.userId || "50TEST",
+                    points: Number(p.points ?? 0),
+                    uniqueCards,
+                    totalCards,
+                    practiceCount
+                });
+                UserStore.refreshDOM();
+                if (window.AccessGate && typeof window.AccessGate.syncAuthHeaderButton === "function") {
+                    window.AccessGate.syncAuthHeaderButton();
+                }
+            }
+
+            window.__setTopBarStatus = applyTopBarValues;
+            window.forceSyncHeaderFromStore = syncFromUserStore;
+
+            if (window.UserStore) {
+                UserStore.subscribe((eventName, snapshot) => {
+                    syncFromUserStore();
+                    if (
+                        typeof window.applyTheme === "function" &&
+                        ["init", "theme:updated", "profile:synced", "user:switched"].includes(eventName)
+                    ) {
+                        window.applyTheme(snapshot?.profile?.theme || UserStore.getTheme(), document);
+                    }
+                });
+            }
+
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", syncFromUserStore);
+            } else {
+                syncFromUserStore();
+            }
+        })();
+    </script>
+
+    <script type="module" src="./assets/js/router.js"></script>
+</body>
+</html>
