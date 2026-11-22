@@ -385,13 +385,13 @@ export default {
 
             const submitBtn = container.querySelector("#vocab-btn-submit");
             const nextBtn = container.querySelector("#vocab-btn-next");
-            submitBtn.classList.remove('hidden');
+            submitBtn.classList.add('hidden');
             nextBtn.classList.add('hidden');
 
             const feedback = container.querySelector("#vocab-feedback-box");
             feedback.style.opacity = '0';
             feedback.className = "p-4 rounded-xl font-medium text-sm min-h-[56px] flex items-center bg-slate-900 border border-slate-700 text-slate-300";
-            feedback.innerHTML = "請作答...";
+            feedback.innerHTML = "請點選一個選項，再按旁邊的「送出答案」...";
 
             const word = String(q.word || q.單字 || "").trim();
             const zh = String(q.zh || q.中文解釋 || "").trim();
@@ -424,13 +424,57 @@ export default {
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     ${options.map((opt, i) => `
-                        <label class="flex items-center p-4 rounded-xl border-2 border-slate-700 hover:border-emerald-500 cursor-pointer transition font-bold bg-slate-900 text-slate-200">
-                            <input type="radio" name="vocab-quiz-opt" value="${opt}" class="w-4 h-4 text-emerald-500">
-                            <span class="ml-3">(${String.fromCharCode(65 + i)}) ${opt}</span>
-                        </label>
+                        <div class="vocab-opt-card flex items-center justify-between gap-2 p-3.5 sm:p-4 rounded-xl border-2 border-slate-700 hover:border-emerald-500 cursor-pointer transition font-bold bg-slate-900 text-slate-200">
+                            <label class="flex items-center flex-1 min-w-0 cursor-pointer">
+                                <input type="radio" name="vocab-quiz-opt" value="${opt}" class="w-4 h-4 text-emerald-500 shrink-0">
+                                <span class="ml-3 break-words">(${String.fromCharCode(65 + i)}) ${opt}</span>
+                            </label>
+                            <button type="button" class="vocab-inline-submit hidden shrink-0 px-3.5 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs shadow transition cursor-pointer">
+                                送出答案
+                            </button>
+                        </div>
                     `).join('')}
                 </div>
             `;
+
+            const optCards = Array.from(qContainer.querySelectorAll(".vocab-opt-card"));
+            const syncOptionSelectionUI = () => {
+                optCards.forEach((card) => {
+                    const radio = card.querySelector('input[name="vocab-quiz-opt"]');
+                    const inlineBtn = card.querySelector(".vocab-inline-submit");
+                    const isChecked = Boolean(radio?.checked);
+                    card.classList.toggle("border-emerald-400", isChecked);
+                    card.classList.toggle("bg-emerald-950/30", isChecked);
+                    card.classList.toggle("border-slate-700", !isChecked);
+                    if (inlineBtn) inlineBtn.classList.toggle("hidden", !isChecked || answered);
+                });
+            };
+
+            optCards.forEach((card) => {
+                const radio = card.querySelector('input[name="vocab-quiz-opt"]');
+                const inlineBtn = card.querySelector(".vocab-inline-submit");
+                if (radio) {
+                    radio.onchange = () => {
+                        if (answered) return;
+                        syncOptionSelectionUI();
+                    };
+                }
+                card.onclick = (e) => {
+                    if (answered) return;
+                    if (e.target.closest(".vocab-inline-submit")) return;
+                    if (radio && !radio.checked) {
+                        radio.checked = true;
+                        syncOptionSelectionUI();
+                    }
+                };
+                if (inlineBtn) {
+                    inlineBtn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        submitAnswer();
+                    };
+                }
+            });
 
             const excludeBtn = qContainer.querySelector("#vocab-exclude-word-btn");
             if (excludeBtn && q._idKey) {
@@ -447,7 +491,7 @@ export default {
             }
         }
 
-        container.querySelector("#vocab-btn-submit").onclick = async () => {
+        async function submitAnswer() {
             if (answered) return;
             const selected = container.querySelector('input[name="vocab-quiz-opt"]:checked');
             const feedback = container.querySelector("#vocab-feedback-box");
@@ -458,12 +502,24 @@ export default {
             }
 
             answered = true;
+            container.querySelectorAll(".vocab-inline-submit").forEach((btn) => btn.classList.add("hidden"));
+            container.querySelectorAll('input[name="vocab-quiz-opt"]').forEach((r) => { r.disabled = true; });
             feedback.style.opacity = '1';
 
             const currentQ = quizList[currentIndex % quizList.length];
             let userVal = selected.value.trim().toLowerCase();
             let correctBase = currentCorrectAnswer.trim().toLowerCase();
             let isCorrect = (userVal === correctBase) || (userVal === correctBase + 's') || (userVal === correctBase + 'es');
+
+            const selectedCard = selected.closest(".vocab-opt-card");
+            if (selectedCard) {
+                selectedCard.classList.remove("border-emerald-400", "bg-emerald-950/30", "border-slate-700");
+                if (isCorrect) {
+                    selectedCard.classList.add("border-emerald-500", "bg-emerald-950/40");
+                } else {
+                    selectedCard.classList.add("border-rose-500", "bg-rose-950/40");
+                }
+            }
 
             const attemptRes = currentQ?._idKey
                 ? await recordWordAttempt(getActiveUserId(), db, currentQ._idKey, isCorrect, WORD_STATUS, MASTERY_THRESHOLD)
@@ -532,7 +588,9 @@ export default {
                     container.querySelector("#vocab-btn-next").classList.remove('hidden');
                 }
             }
-        };
+        }
+
+        container.querySelector("#vocab-btn-submit").onclick = submitAnswer;
 
         container.querySelector("#vocab-btn-next").onclick = () => {
             nextQuestionFlow();
